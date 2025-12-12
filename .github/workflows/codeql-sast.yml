@@ -59,6 +59,22 @@ jobs:
         path: codeql-results.sarif
         retention-days: 30
 
+    - name: Generate SARIF summary
+      if: always()
+      run: |
+        if [ -f codeql-results.sarif ]; then
+          echo "## 📊 CodeQL Analysis Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "SARIF файл создан: \`codeql-results.sarif\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Как посмотреть результаты:" >> $GITHUB_STEP_SUMMARY
+          echo "1. **GitHub Security Tab** - автоматически обрабатывается GitHub" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Скачайте артефакт** и используйте:" >> $GITHUB_STEP_SUMMARY
+          echo "   - VS Code: установите расширение 'SARIF Viewer'" >> $GITHUB_STEP_SUMMARY
+          echo "   - Онлайн: https://microsoft.github.io/sarif-web-component/" >> $GITHUB_STEP_SUMMARY
+          echo "   - Скрипт: \`python scripts/view_sarif.py codeql-results.sarif\`" >> $GITHUB_STEP_SUMMARY
+        fi
+
   bandit-sast:
     name: Bandit Security Linting
     runs-on: ubuntu-latest
