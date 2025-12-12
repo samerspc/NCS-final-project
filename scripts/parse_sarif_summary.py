@@ -17,12 +17,29 @@ def generate_summary(sarif_file: str, summary_file: str = None):
         summary_file = os.environ.get('GITHUB_STEP_SUMMARY', '/dev/stdout')
     
     try:
-        # Проверяем существование файла
+        # Проверяем существование файла (абсолютный и относительный путь)
         if not os.path.exists(sarif_file):
-            with open(summary_file, 'a') as out:
-                out.write(f"⚠️  SARIF файл не найден: {sarif_file}\n\n")
-                out.write("💡 CodeQL может потребоваться несколько запусков для создания базы данных.\n")
-            return
+            # Пробуем найти файл в текущей директории
+            current_dir = os.getcwd()
+            possible_paths = [
+                sarif_file,
+                os.path.join(current_dir, sarif_file),
+                os.path.join(current_dir, os.path.basename(sarif_file)),
+            ]
+            
+            found = False
+            for path in possible_paths:
+                if os.path.exists(path):
+                    sarif_file = path
+                    found = True
+                    break
+            
+            if not found:
+                with open(summary_file, 'a') as out:
+                    out.write(f"⚠️  SARIF файл не найден: {sarif_file}\n\n")
+                    out.write(f"Проверенные пути: {', '.join(possible_paths)}\n\n")
+                    out.write("💡 CodeQL может потребоваться несколько запусков для создания базы данных.\n")
+                return
         
         with open(sarif_file, 'r', encoding='utf-8') as f:
             data = json.load(f)

@@ -48,16 +48,37 @@ jobs:
         category: "/language:python"
         # Загружаем результаты в Security tab
         upload: true
-        # Создаем SARIF файл для интеграции
-        output: codeql-results.sarif
+        # Директория для SARIF файлов (CodeQL создаст файлы внутри)
+        output: ./codeql-results
       continue-on-error: true
+      id: codeql-analysis
+
+    - name: List CodeQL output files
+      if: always()
+      run: |
+        echo "=== CodeQL Output Directory ==="
+        echo "CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR: $CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR"
+        echo ""
+        echo "=== Current Directory ==="
+        pwd
+        ls -la
+        echo ""
+        echo "=== Looking for SARIF files ==="
+        find . -name "*.sarif" -type f 2>/dev/null || echo "No .sarif files found"
+        echo ""
+        echo "=== CodeQL directories ==="
+        find . -type d -name "*codeql*" 2>/dev/null | head -5 || echo "No codeql directories found"
 
     - name: Upload CodeQL results as artifact
-      uses: actions/upload-artifact@v4
       if: always()
+      uses: actions/upload-artifact@v4
       with:
         name: codeql-results
-        path: codeql-results.sarif
+        path: |
+          codeql-results/
+          codeql-results.sarif
+          **/*.sarif
+        if-no-files-found: ignore
         retention-days: 30
 
     - name: Generate SARIF summary
@@ -66,19 +87,63 @@ jobs:
         echo "## 📊 CodeQL Analysis Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        # Ищем SARIF файл
-        SARIF_FILE="codeql-results.sarif"
+        # Ищем SARIF файл в разных местах
+        # CodeQL создает файлы в директории output или в стандартных местах
+        SARIF_FILE=""
         
-        if [ -f "$SARIF_FILE" ]; then
-          echo "📄 Парсинг SARIF файла..." >> $GITHUB_STEP_SUMMARY
+        # Проверяем возможные пути (в порядке приоритета)
+        # 1. В директории codeql-results (если указали output)
+        if [ -f "codeql-results/python.sarif" ]; then
+          SARIF_FILE="codeql-results/python.sarif"
+        elif [ -f "codeql-results/codeql-results.sarif" ]; then
+          SARIF_FILE="codeql-results/codeql-results.sarif"
+        # 2. В корне (старый формат)
+        elif [ -f "codeql-results.sarif" ]; then
+          SARIF_FILE="codeql-results.sarif"
+        # 3. В переменной окружения CodeQL
+        elif [ -n "$CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR" ]; then
+          if [ -f "$CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR/python.sarif" ]; then
+            SARIF_FILE="$CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR/python.sarif"
+          elif [ -f "$CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR" ]; then
+            SARIF_FILE="$CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR"
+          fi
+        fi
+        
+        # 4. Ищем все .sarif файлы в текущей директории и поддиректориях
+        if [ -z "$SARIF_FILE" ]; then
+          FOUND_SARIF=$(find . -name "*.sarif" -type f 2>/dev/null | head -1)
+          if [ -n "$FOUND_SARIF" ]; then
+            SARIF_FILE="$FOUND_SARIF"
+          fi
+        fi
+        
+        if [ -n "$SARIF_FILE" ] && [ -f "$SARIF_FILE" ]; then
+          echo "📄 Найден SARIF файл: $SARIF_FILE" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           python3 scripts/parse_sarif_summary.py "$SARIF_FILE"
         else
-          echo "⚠️  SARIF файл не найден: $SARIF_FILE" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️  SARIF файл не найден" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Проверенные пути:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`codeql-results.sarif\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ github.workspace }}/codeql-results.sarif\`" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR" ]; then
+            echo "- \`$CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR\`" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "💡 **Примечание**: CodeQL может потребоваться несколько запусков для создания базы данных кода." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Результаты будут доступны в GitHub Security Tab после успешного анализа." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Отладочная информация:**" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "PWD: $(pwd)" >> $GITHUB_STEP_SUMMARY
+          echo "Files in current dir:" >> $GITHUB_STEP_SUMMARY
+          ls -la | head -10 >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Looking for .sarif files:" >> $GITHUB_STEP_SUMMARY
+          find . -name "*.sarif" -type f 2>/dev/null >> $GITHUB_STEP_SUMMARY || echo "No .sarif files found" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         fi
 
   bandit-sast:
