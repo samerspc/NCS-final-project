@@ -247,13 +247,48 @@ jobs:
       with:
         path: security-reports
 
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.8'
+
     - name: Create security summary
       run: |
         echo "# Security Scan Summary" > security-summary.md
         echo "" >> security-summary.md
+        
+        # CodeQL Analysis Section
         echo "## CodeQL Analysis" >> security-summary.md
-        echo "- Results uploaded to GitHub Security tab" >> security-summary.md
-        echo "- SARIF file available in artifacts" >> security-summary.md
+        
+        # Ищем SARIF файл в артефактах
+        SARIF_FILE=""
+        if [ -f "security-reports/codeql-results/python.sarif" ]; then
+          SARIF_FILE="security-reports/codeql-results/python.sarif"
+        elif [ -f "security-reports/codeql-results/codeql-results.sarif" ]; then
+          SARIF_FILE="security-reports/codeql-results/codeql-results.sarif"
+        elif [ -f "security-reports/codeql-results/codeql-results.sarif" ]; then
+          SARIF_FILE="security-reports/codeql-results/codeql-results.sarif"
+        else
+          # Ищем все SARIF файлы
+          FOUND_SARIF=$(find security-reports -name "*.sarif" -type f 2>/dev/null | head -1)
+          if [ -n "$FOUND_SARIF" ]; then
+            SARIF_FILE="$FOUND_SARIF"
+          fi
+        fi
+        
+        if [ -n "$SARIF_FILE" ] && [ -f "$SARIF_FILE" ]; then
+          echo "### Issues Found:" >> security-summary.md
+          echo "" >> security-summary.md
+          # Парсим SARIF и добавляем статистику
+          python3 scripts/parse_sarif_summary.py "$SARIF_FILE" security-summary.md
+          echo "" >> security-summary.md
+        else
+          echo "- Results uploaded to GitHub Security tab" >> security-summary.md
+          echo "- SARIF file available in artifacts" >> security-summary.md
+          echo "" >> security-summary.md
+          echo "⚠️  SARIF file not found in artifacts" >> security-summary.md
+        fi
+        
         echo "" >> security-summary.md
         echo "## Bandit SAST Scan" >> security-summary.md
         if [ -f security-reports/bandit-report/bandit-report.txt ]; then

@@ -14,7 +14,9 @@ def generate_summary(sarif_file: str, summary_file: str = None):
     """Генерирует summary из SARIF файла"""
     
     if not summary_file:
-        summary_file = os.environ.get('GITHUB_STEP_SUMMARY', '/dev/stdout')
+        summary_file = os.environ.get('GITHUB_STEP_SUMMARY')
+        if not summary_file:
+            summary_file = '/dev/stdout'
     
     try:
         # Проверяем существование файла (абсолютный и относительный путь)
@@ -80,11 +82,13 @@ def generate_summary(sarif_file: str, summary_file: str = None):
         with open(summary_file, 'a') as f:
             if total_results == 0:
                 f.write("✅ **Нет проблем найдено!**\n\n")
+                f.write("- Results uploaded to GitHub Security tab\n")
+                f.write("- SARIF file available in artifacts\n")
             else:
                 f.write(f"**Всего найдено проблем**: {total_results}\n\n")
                 
                 if results_by_level:
-                    f.write("### По уровню серьезности:\n\n")
+                    f.write("**По уровню серьезности:**\n")
                     level_emoji = {'error': '🔴', 'warning': '🟡', 'note': '🔵', 'none': '⚪'}
                     for level in ['error', 'warning', 'note', 'none']:
                         if level in results_by_level:
@@ -93,29 +97,21 @@ def generate_summary(sarif_file: str, summary_file: str = None):
                     f.write("\n")
                 
                 if results_by_rule:
-                    f.write("### Топ-10 типов проблем:\n\n")
-                    sorted_rules = sorted(results_by_rule.items(), key=lambda x: x[1], reverse=True)[:10]
+                    f.write("**Топ-5 типов проблем:**\n")
+                    sorted_rules = sorted(results_by_rule.items(), key=lambda x: x[1], reverse=True)[:5]
                     for rule_id, count in sorted_rules:
                         f.write(f"- `{rule_id}`: {count}\n")
                     f.write("\n")
                 
                 if results_by_file:
-                    f.write("### Файлы с проблемами:\n\n")
-                    sorted_files = sorted(results_by_file.items(), key=lambda x: x[1], reverse=True)[:5]
+                    f.write("**Файлы с проблемами:**\n")
+                    sorted_files = sorted(results_by_file.items(), key=lambda x: x[1], reverse=True)[:3]
                     for file_uri, count in sorted_files:
                         f.write(f"- `{file_uri}`: {count} проблем\n")
                     f.write("\n")
-            
-            f.write("### 📁 Артефакты:\n\n")
-            f.write("- SARIF файл доступен в артефактах workflow\n")
-            f.write("- Результаты также в GitHub Security Tab\n\n")
-            
-            f.write("### 🔍 Как посмотреть детали:\n\n")
-            f.write("1. **GitHub Security Tab** - автоматически обрабатывается GitHub\n")
-            f.write("2. **Скачайте артефакт** и используйте:\n")
-            f.write("   - VS Code: установите расширение 'SARIF Viewer'\n")
-            f.write("   - Онлайн: https://microsoft.github.io/sarif-web-component/\n")
-            f.write("   - Скрипт: `python scripts/view_sarif.py codeql-results.sarif`\n")
+                
+                f.write("- Results uploaded to GitHub Security tab\n")
+                f.write("- SARIF file available in artifacts\n")
     
     except FileNotFoundError:
         with open(summary_file, 'a') as out:
