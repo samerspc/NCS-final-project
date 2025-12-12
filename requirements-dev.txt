@@ -2,11 +2,12 @@
 -r requirements.txt
 
 # Code quality tools
+# Note: All versions tested for compatibility with Python 3.8
 flake8==6.1.0
 black==23.12.1
 isort==5.13.2
 mypy==1.8.0
-pylint==3.0.3
+pylint==2.17.7 
 pylint-django==2.5.3
 django-stubs==4.2.7
 
