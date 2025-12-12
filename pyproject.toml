@@ -1,0 +1,50 @@
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | migrations
+  | __pycache__
+  | build
+  | dist
+)/
+'''
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+
+[[tool.mypy.overrides]]
+module = [
+    "django.*",
+    "security.*",
+]
+ignore_missing_imports = true
+
+[tool.pylint.messages_control]
+disable = [
+    "C0111",  # missing-docstring
+    "C0103",  # invalid-name
+    "R0903",  # too-few-public-methods
+    "R0913",  # too-many-arguments
+]
+
+[tool.pylint."[format]"]
+max-line-length = 88
+
+[tool.bandit]
+exclude_dirs = ["migrations", "venv", ".venv", "env", ".env"]
+skips = ["B101"]  # Skip assert_used test
+
