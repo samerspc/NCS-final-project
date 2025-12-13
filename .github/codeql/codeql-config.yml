@@ -1,0 +1,27 @@
+name: "Python Security Queries"
+
+# Конфигурация CodeQL для Python проекта с Django
+
+# Пути для сканирования
+paths:
+  - "insecure/"
+
+# Пути для исключения
+paths-ignore:
+  - "**/migrations/"
+  - "**/__pycache__/"
+  - "**/venv/"
+  - "**/.venv/"
+  - "**/node_modules/"
+  - "**/db.sqlite3"
+
+# Запросы для поиска уязвимостей
+# Используем стандартный набор security-and-quality queries
+# который включает:
+# - SQL injection
+# - Command injection  
+# - Path traversal
+# - XSS
+# - Insecure deserialization
+# - И многое другое
+

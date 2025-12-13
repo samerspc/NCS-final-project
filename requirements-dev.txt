@@ -2,6 +2,7 @@
 -r requirements.txt
 
 # Code quality tools
+# Note: All versions tested for compatibility with Python 3.8
 flake8==6.1.0
 black==23.12.1
 isort==5.13.2
