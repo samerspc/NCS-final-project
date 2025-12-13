@@ -7,11 +7,8 @@ flake8==6.1.0
 black==23.12.1
 isort==5.13.2
 mypy==1.8.0
-pylint==2.17.7 
+pylint==2.17.7
 pylint-django==2.5.3
 django-stubs==4.2.7
-
-# Pre-commit (optional, for local development)
-# Install separately: pip install pre-commit
-# Note: pre-commit 3.x requires Python 3.9+, for Python 3.8 use: pre-commit==2.21.0
+pre-commit==3.5.0
 
